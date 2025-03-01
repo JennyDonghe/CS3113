@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		9F7E56EE2D72BB9700C467D7 /* ball.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 9F7E56ED2D72B9C600C467D7 /* ball.png */; };
+		9F7E56EF2D72BB9700C467D7 /* player2.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 9F7E56EC2D72B9C100C467D7 /* player2.png */; };
+		9F7E56F02D72BB9700C467D7 /* player1.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 9F7E56EB2D72B9BB00C467D7 /* player1.png */; };
 		DBDF1B532323DE3F007CECB1 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DBDF1B522323DE3F007CECB1 /* main.cpp */; };
 		DBDF1B5E2323DE8D007CECB1 /* ShaderProgram.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DBDF1B5D2323DE8D007CECB1 /* ShaderProgram.cpp */; };
 		DBDF1B612323DE9E007CECB1 /* shaders in CopyFiles */ = {isa = PBXBuildFile; fileRef = DBDF1B5C2323DE8D007CECB1 /* shaders */; };
@@ -24,6 +27,9 @@
 			dstPath = "";
 			dstSubfolderSpec = 6;
 			files = (
+				9F7E56EE2D72BB9700C467D7 /* ball.png in CopyFiles */,
+				9F7E56EF2D72BB9700C467D7 /* player2.png in CopyFiles */,
+				9F7E56F02D72BB9700C467D7 /* player1.png in CopyFiles */,
 				DBDF1B612323DE9E007CECB1 /* shaders in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -31,8 +37,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		9F40AB2F2D5C4335009F3639 /* turtle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = turtle.png; sourceTree = "<group>"; };
-		9F40AB322D5DAE7B009F3639 /* pikachu.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = pikachu.png; sourceTree = "<group>"; };
+		9F7E56EB2D72B9BB00C467D7 /* player1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = player1.png; sourceTree = "<group>"; };
+		9F7E56EC2D72B9C100C467D7 /* player2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = player2.png; sourceTree = "<group>"; };
+		9F7E56ED2D72B9C600C467D7 /* ball.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = ball.png; sourceTree = "<group>"; };
 		DBDF1B4F2323DE3F007CECB1 /* SDLProject */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = SDLProject; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBDF1B522323DE3F007CECB1 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		DBDF1B592323DE8D007CECB1 /* ShaderProgram.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ShaderProgram.h; sourceTree = "<group>"; };
@@ -83,8 +90,9 @@
 		DBDF1B512323DE3F007CECB1 /* Project1 */ = {
 			isa = PBXGroup;
 			children = (
-				9F40AB322D5DAE7B009F3639 /* pikachu.png */,
-				9F40AB2F2D5C4335009F3639 /* turtle.png */,
+				9F7E56ED2D72B9C600C467D7 /* ball.png */,
+				9F7E56EC2D72B9C100C467D7 /* player2.png */,
+				9F7E56EB2D72B9BB00C467D7 /* player1.png */,
 				DBDF1B5B2323DE8D007CECB1 /* glm */,
 				DBDF1B5D2323DE8D007CECB1 /* ShaderProgram.cpp */,
 				DBDF1B592323DE8D007CECB1 /* ShaderProgram.h */,

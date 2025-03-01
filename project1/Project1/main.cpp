@@ -1,7 +1,7 @@
 /**
-* Author: Jenny Dong
-* Assignment: Simple 2D Scene
-* Date due: 2025-02-15, 11:59pm
+* Author: [Amy Li]
+* Assignment: Pong Clone
+* Date due: 2024-10-12, 11:59pm
 * I pledge that I have completed this assignment without
 * collaborating with anyone else, in conformance with the
 * NYU School of Engineering Policies and Procedures on
@@ -10,84 +10,114 @@
 #define GL_SILENCE_DEPRECATION
 #define STB_IMAGE_IMPLEMENTATION
 #define LOG(argument) std::cout << argument << '\n'
-#define GL_GLEXT_PROTOTYPES 1
 
 #ifdef _WINDOWS
 #include <GL/glew.h>
 #endif
 
+#define GL_GLEXT_PROTOTYPES 1
 #include <SDL.h>
 #include <SDL_opengl.h>
 #include "glm/mat4x4.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "ShaderProgram.h"
 #include "stb_image.h"
+#include "cmath"
+#include <ctime>
 
 enum AppStatus { RUNNING, TERMINATED };
 
-constexpr int WINDOW_WIDTH  = 640 * 2,
-              WINDOW_HEIGHT = 480 * 2;
+constexpr float WINDOW_SIZE_MULT = 2.0f;
 
-constexpr float BG_RED     = 0.9765625f,
-                BG_GREEN   = 0.97265625f,
-                BG_BLUE    = 0.9609375f,
-                BG_OPACITY = 1.0f;
+constexpr int WINDOW_WIDTH  = 640 * WINDOW_SIZE_MULT,
+              WINDOW_HEIGHT = 480 * WINDOW_SIZE_MULT;
 
-constexpr int VIEWPORT_X      = 0,
-              VIEWPORT_Y      = 0,
+//constexpr float BG_RED     = 0.9765625f,
+//                BG_GREEN   = 0.97265625f,
+//                BG_BLUE    = 0.9609375f,
+//                BG_OPACITY = 1.0f;
+
+constexpr int VIEWPORT_X = 0,
+              VIEWPORT_Y = 0,
               VIEWPORT_WIDTH  = WINDOW_WIDTH,
               VIEWPORT_HEIGHT = WINDOW_HEIGHT;
 
 constexpr char V_SHADER_PATH[] = "shaders/vertex_textured.glsl",
                F_SHADER_PATH[] = "shaders/fragment_textured.glsl";
 
+constexpr GLint NUMBER_OF_TEXTURES = 1;
+constexpr GLint LEVEL_OF_DETAIL    = 0;
+constexpr GLint TEXTURE_BORDER     = 0;
+
 constexpr float MILLISECONDS_IN_SECOND = 1000.0;
 
-constexpr GLint NUMBER_OF_TEXTURES = 1, // to be generated, that is
-                LEVEL_OF_DETAIL    = 0, // mipmap reduction image level
-                TEXTURE_BORDER     = 0; // this value MUST be zero
+constexpr char PLAYER_ONE_FILEPATH[] = "player1.png",
+               PLAYER_TWO_FILEPATH[]  = "player2.png",
+               BALL_FILEPATH[]  = "ball.png";
 
-// source
-constexpr char TURTLE_SPRITE_FILEPATH[]    = "turtle.png",
-               PIKACHU_SPRITE_FILEPATH[] = "pikachu.png";
-
-constexpr glm::vec3 INIT_SCALE       = glm::vec3(1.0f, 1.0f, 0.0f),
-                    INIT_POS_TURTLE    = glm::vec3(0.0f, 0.0f, 0.0f),
-                    INIT_POS_PIKACHU = glm::vec3(-2.0f, 0.0f, 0.0f);
-
-constexpr float ROT_INCREMENT = 1.0f;
-
-float g_angle_pikachu = 0.0f; // Angle of rotation around Turtle
-constexpr float PIKACHU_ROT_SPEED = 1.5f; // Speed of rotation
-constexpr float PIKACHU_RADIUS = 2.0f; // Distance from Turtle
-
-float g_pikachu_scale = 1.0f; // Default scale
-constexpr float PIKACHU_SCALE_SPEED = 0.5f; // Speed of scaling
-constexpr float PIKACHU_MIN_SCALE = 0.5f; // Minimum scale
-constexpr float PIKACHU_MAX_SCALE = 2.0f; // Maximum scale
-bool g_pikachu_growing = true; // Controls expansion/shrinking
+constexpr float MINIMUM_COLLISION_DISTANCE = 1.0f;
+constexpr glm::vec3 INIT_SCALE_BALL      = glm::vec3(0.3f, 0.3f, 0.0f),
+                    INIT_POS_BALL        = glm::vec3(0.0f, 0.0f, 0.0f),
+                    INIT_SCALE_PLAYER    = glm::vec3(2.02f, 1.35f, 0.0f),
+                    INIT_POS_PLAYER_ONE  = glm::vec3(-4.0f, 0.0f, 0.0f),
+                    INIT_POS_PLAYER_TWO  = glm::vec3(4.0f, 0.0f, 0.0f);
 
 SDL_Window* g_display_window;
+
 AppStatus g_app_status = RUNNING;
 ShaderProgram g_shader_program = ShaderProgram();
-
 glm::mat4 g_view_matrix,
-          g_turtle_matrix,
-          g_pikachu_matrix,
-          g_projection_matrix;
+          g_player_one_matrix,
+          g_player_two_matrix,
+          g_projection_matrix,
+          g_ball_matrix;
 
 float g_previous_ticks = 0.0f;
 
-glm::vec3 g_rotation_turtle    = glm::vec3(0.0f, 0.0f, 0.0f),
-          g_rotation_pikachu = glm::vec3(0.0f, 0.0f, 0.0f);
+float g_rot_angle = 0.0f;
 
-GLuint g_turtle_texture_id,
-       g_pikachu_texture_id;
+float screen_height_boundary = 3.75f;
+float paddle_height = INIT_SCALE_PLAYER.y;
+float paddle_width = INIT_SCALE_PLAYER.x;
+float ball_radius = INIT_SCALE_BALL.x * 0.5f;
+
+bool twoplayers = true;
+bool flip_x_mov = false;
+bool flip_y_mov = false;
+
+constexpr float BALL_SPEED = 1.3f,
+                PLAYER_SPEED = 3.0f,
+                ROT_SPEED = 100.0f;
+
+int player_one_score = 0,
+    player_two_score = 0;
+
+GLuint g_player_one_texture_id;
+GLuint g_player_two_texture_id;
+GLuint g_ball_texture_id;
+
+glm::vec3 g_player_one_position  = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 g_player_one_movement  = glm::vec3(0.0f, 0.0f, 0.0f);
+
+glm::vec3 g_player_two_position  = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 g_player_two_movement  = glm::vec3(0.0f, 0.0f, 0.0f);
+
+glm::vec3 g_ball_position = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 g_ball_movement = glm::vec3(0.0f, 0.0f, 0.0f);
+
+
+void initialise();
+void process_input();
+void paddle_wall_collision();
+void paddle_ball_collision();
+void ball_wall_collision();
+void update();
+void render();
+void shutdown();
 
 
 GLuint load_texture(const char* filepath)
 {
-    // STEP 1: Loading the image file
     int width, height, number_of_components;
     unsigned char* image = stbi_load(filepath, &width, &height, &number_of_components, STBI_rgb_alpha);
 
@@ -97,42 +127,31 @@ GLuint load_texture(const char* filepath)
         assert(false);
     }
 
-    // STEP 2: Generating and binding a texture ID to our image
     GLuint textureID;
     glGenTextures(NUMBER_OF_TEXTURES, &textureID);
     glBindTexture(GL_TEXTURE_2D, textureID);
     glTexImage2D(GL_TEXTURE_2D, LEVEL_OF_DETAIL, GL_RGBA, width, height, TEXTURE_BORDER, GL_RGBA, GL_UNSIGNED_BYTE, image);
 
-    // STEP 3: Setting our texture filter parameters
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    // STEP 4: Releasing our file from memory and returning our texture id
     stbi_image_free(image);
 
     return textureID;
 }
 
-
 void initialise()
 {
-    // Initialise video
     SDL_Init(SDL_INIT_VIDEO);
-
-    g_display_window = SDL_CreateWindow("Pikachu VS Squirtle",
-                                      SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                      WINDOW_WIDTH, WINDOW_HEIGHT,
-                                      SDL_WINDOW_OPENGL);
+    g_display_window = SDL_CreateWindow("Pong",
+                                        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                                        WINDOW_WIDTH, WINDOW_HEIGHT,
+                                        SDL_WINDOW_OPENGL);
 
     SDL_GLContext context = SDL_GL_CreateContext(g_display_window);
     SDL_GL_MakeCurrent(g_display_window, context);
 
-    if (g_display_window == nullptr)
-    {
-        std::cerr << "Error: SDL window could not be created.\n";
-        SDL_Quit();
-        exit(1);
-    }
+    if (g_display_window == nullptr) shutdown();
 
 #ifdef _WINDOWS
     glewInit();
@@ -142,9 +161,11 @@ void initialise()
 
     g_shader_program.load(V_SHADER_PATH, F_SHADER_PATH);
 
-    g_turtle_matrix       = glm::mat4(1.0f);
-    g_pikachu_matrix     = glm::mat4(1.0f);
-    g_view_matrix       = glm::mat4(1.0f);
+    g_player_one_matrix = glm::mat4(1.0f);
+    g_player_two_matrix = glm::mat4(1.0f);
+    g_ball_matrix = glm::mat4(1.0f);
+        
+    g_view_matrix = glm::mat4(1.0f);
     g_projection_matrix = glm::ortho(-5.0f, 5.0f, -3.75f, 3.75f, -1.0f, 1.0f);
 
     g_shader_program.set_projection_matrix(g_projection_matrix);
@@ -152,28 +173,205 @@ void initialise()
 
     glUseProgram(g_shader_program.get_program_id());
 
-    glClearColor(BG_RED, BG_BLUE, BG_GREEN, BG_OPACITY);
-
-    g_turtle_texture_id    = load_texture(TURTLE_SPRITE_FILEPATH);
-    g_pikachu_texture_id = load_texture(PIKACHU_SPRITE_FILEPATH);
+    glClearColor(0.8f, 1.0f, 0.8f, 1.0f);
+    
+    g_player_one_texture_id = load_texture(PLAYER_ONE_FILEPATH);
+    g_player_two_texture_id = load_texture(PLAYER_TWO_FILEPATH);
+    g_ball_texture_id = load_texture(BALL_FILEPATH);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
-
 void process_input()
 {
+    g_ball_movement = glm::vec3(0.0f);
+    g_player_one_movement = glm::vec3(0.0f);
+    g_player_two_movement = glm::vec3(0.0f);
+
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
-        if (event.type == SDL_QUIT || event.type == SDL_WINDOWEVENT_CLOSE)
+        switch (event.type)
         {
-            g_app_status = TERMINATED;
+            case SDL_QUIT:
+            case SDL_WINDOWEVENT_CLOSE:
+                g_app_status = TERMINATED;
+                break;
+            case SDL_KEYDOWN:
+                switch (event.key.keysym.sym)
+                {
+                    case SDLK_q:
+                        g_app_status = TERMINATED;
+                        break;
+                    case SDLK_w:
+                        g_player_one_movement.y = 1.0f;
+                        break;
+                    case SDLK_s:
+                        g_player_one_movement.y = -1.0f;
+                        break;
+                    case SDLK_UP:
+                        g_player_two_movement.y = 1.0f;
+                        break;
+                    case SDLK_DOWN:
+                        g_player_two_movement.y = -1.0f;
+                        break;
+                    case SDLK_t:
+                        twoplayers = false;
+                        break;
+                }
+            case SDL_KEYUP:
+                switch (event.key.keysym.sym)
+                {
+                    case SDLK_w:
+                    case SDLK_s:
+                        g_player_one_movement.y = 0.0f;
+                        break;
+                    case SDLK_UP:
+                    case SDLK_DOWN:
+                        g_player_two_movement.y = 0.0f;
+                        break;
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    const Uint8 *key_state = SDL_GetKeyboardState(NULL);
+    
+    if (glm::length(g_ball_movement) > 1.0f)
+    {
+        g_ball_movement = glm::normalize(g_ball_movement);
+    }
+    // player 1 keys
+    if (key_state[SDL_SCANCODE_W])
+    {
+        g_player_one_movement.y = 1.0f;
+    }
+    else if (key_state[SDL_SCANCODE_S])
+    {
+        g_player_one_movement.y = -1.0f;
+    }
+    //player 2 keys
+    if (!twoplayers)
+    {
+        if (g_ball_position.y > g_player_two_position.y + INIT_SCALE_PLAYER.y * 0.5f)
+        {
+            g_player_two_movement.y = 1.0f;
+        }
+        else if (g_ball_position.y < g_player_two_position.y - INIT_SCALE_PLAYER.y * 0.5f)
+        {
+            g_player_two_movement.y = -1.0f;
+        }
+        else
+        {
+            g_player_two_movement.y = 0.0f;
+        }
+    }
+    else {
+        if (key_state[SDL_SCANCODE_UP])
+        {
+            g_player_two_movement.y = 1.0f;
+        }
+        else if (key_state[SDL_SCANCODE_DOWN])
+        {
+            g_player_two_movement.y = -1.0f;
         }
     }
 }
 
+void paddle_wall_collision() {
+    if (g_player_one_position.y > (screen_height_boundary) - (INIT_SCALE_PLAYER.y * 0.5f))
+    {
+        g_player_one_position.y = (screen_height_boundary) - (INIT_SCALE_PLAYER.y * 0.5f);
+        g_player_one_movement = glm::vec3(0.0f, 0.0f, 0.0f);
+    }
+    if (g_player_one_position.y < (-screen_height_boundary) + (INIT_SCALE_PLAYER.y * 0.5f))
+    {
+        g_player_one_position.y = (-screen_height_boundary) + (INIT_SCALE_PLAYER.y * 0.5f);
+        g_player_one_movement = glm::vec3(0.0f, 0.0f, 0.0f);
+    }
+    
+    if (g_player_two_position.y > (screen_height_boundary) - (INIT_SCALE_PLAYER.y * 0.5f))
+    {
+        g_player_two_position.y = (screen_height_boundary) - (INIT_SCALE_PLAYER.y * 0.5f);
+        g_player_two_movement = glm::vec3(0.0f, 0.0f, 0.0f);
+    }
+    if (g_player_two_position.y < (-screen_height_boundary) + (INIT_SCALE_PLAYER.y * 0.5f))
+    {
+        g_player_two_position.y = (-screen_height_boundary) + (INIT_SCALE_PLAYER.y * 0.5f);
+        g_player_two_movement = glm::vec3(0.0f, 0.0f, 0.0f);
+    }
+}
+
+void paddle_ball_collision(){
+    
+    float x_one_distance = fabs((g_player_one_position.x + INIT_POS_PLAYER_ONE.x) - (g_ball_position.x + INIT_POS_BALL.x)) -
+    ((INIT_SCALE_BALL.x + INIT_SCALE_PLAYER.x) / 2.0f);
+    float y_one_distance = fabs((g_player_one_position.y + INIT_POS_PLAYER_ONE.y) - (g_ball_position.y + INIT_POS_BALL.y)) -
+    ((INIT_SCALE_BALL.y + INIT_SCALE_PLAYER.y) / 2.0f);
+        
+    if (x_one_distance < 0 && y_one_distance <= 0){
+        flip_x_mov = !flip_x_mov;
+        flip_y_mov = !flip_y_mov;
+        g_ball_movement.x *= -1;;
+    }
+    
+    float x_two_distance = fabs((g_player_two_position.x + INIT_POS_PLAYER_TWO.x) - (g_ball_position.x + INIT_POS_BALL.x)) -
+    ((INIT_SCALE_BALL.x + INIT_SCALE_PLAYER.x) / 2.0f);
+    float y_two_distance = fabs((g_player_two_position.y + INIT_POS_PLAYER_TWO.y) - (g_ball_position.y + INIT_POS_BALL.y)) -
+    ((INIT_SCALE_BALL.y + INIT_SCALE_PLAYER.y) / 2.0f);
+
+    if (x_two_distance < 0 && y_two_distance <= 0){
+        flip_x_mov = !flip_x_mov;
+        flip_y_mov = !flip_y_mov;
+        g_ball_movement.x *= -1;;
+    }
+
+}
+
+void ball_wall_collision() {
+    if (g_ball_position.x - ball_radius <= -5.0f)
+    {
+        player_two_score++;
+        std::cout << "player 2 wins\n";
+        g_ball_position = glm::vec3(0.0f, 0.0f, 0.0f);
+        g_ball_movement = glm::vec3(0.0f, 0.0f, 0.0f);
+    }
+    else if (g_ball_position.x + ball_radius >= 5.0f)
+    {
+        player_one_score++;
+        std::cout << "player 1 wins\n";
+        g_ball_position = glm::vec3(0.0f, 0.0f, 0.0f);
+        g_ball_movement = glm::vec3(0.0f, 0.0f, 0.0f);
+    }
+    
+    if (g_ball_position.y + ball_radius >= screen_height_boundary)
+    {
+        flip_y_mov = true;
+    }
+    else if (g_ball_position.y - ball_radius <= -screen_height_boundary)
+    {
+        flip_y_mov= false;
+    }
+    
+    if (flip_x_mov && flip_y_mov)
+    {
+        g_ball_movement = glm::vec3(-BALL_SPEED, -BALL_SPEED, 0.0f);
+    }
+    else if (flip_x_mov)
+    {
+        g_ball_movement = glm::vec3(-BALL_SPEED, BALL_SPEED, 0.0f);
+    }
+    else if (flip_y_mov)
+    {
+        g_ball_movement = glm::vec3(BALL_SPEED, -BALL_SPEED, 0.0f);
+    }
+    else
+    {
+        g_ball_movement = glm::vec3(BALL_SPEED, BALL_SPEED, 0.0f);
+    }
+}
 
 void update()
 {
@@ -181,101 +379,79 @@ void update()
     float delta_time = ticks - g_previous_ticks;
     g_previous_ticks = ticks;
     
-    /* Update Rotation Angles */
-    g_rotation_turtle.y += ROT_INCREMENT * delta_time; // Turtle rotates on its own axis
-    g_rotation_pikachu.y += -1 * ROT_INCREMENT * delta_time; // Pikachu rotates on its own axis
+    g_player_one_matrix = glm::mat4(1.0f);
+    g_player_one_matrix = glm::translate(g_player_one_matrix, INIT_POS_PLAYER_ONE);
+    g_player_one_matrix = glm::translate(g_player_one_matrix, g_player_one_position);
+    g_player_one_position += g_player_one_movement * PLAYER_SPEED * delta_time;
+
+    g_player_two_matrix = glm::mat4(1.0f);
+    g_player_two_matrix = glm::translate(g_player_two_matrix, INIT_POS_PLAYER_TWO);
+    g_player_two_matrix = glm::translate(g_player_two_matrix, g_player_two_position);
+    g_player_two_position += g_player_two_movement * PLAYER_SPEED * delta_time;
     
-    /* Update Pikachu Orbit Angle */
-    g_angle_pikachu += PIKACHU_ROT_SPEED * delta_time;
-    float pikachu_x = PIKACHU_RADIUS * glm::cos(g_angle_pikachu);
-    float pikachu_y = PIKACHU_RADIUS * glm::sin(g_angle_pikachu);
+    paddle_wall_collision();
+
+    g_ball_matrix = glm::mat4(1.0f);
+    g_ball_matrix = glm::translate(g_ball_matrix, INIT_POS_BALL);
+
+    ball_wall_collision();
+    paddle_ball_collision();
     
-    if (g_pikachu_growing)
-    {
-        g_pikachu_scale += PIKACHU_SCALE_SPEED * delta_time;
-        if (g_pikachu_scale >= PIKACHU_MAX_SCALE)
-        {
-            g_pikachu_scale = PIKACHU_MAX_SCALE;
-            g_pikachu_growing = false; // Start shrinking
-        }
-    }
-    else
-    {
-        g_pikachu_scale -= PIKACHU_SCALE_SPEED * delta_time;
-        if (g_pikachu_scale <= PIKACHU_MIN_SCALE)
-        {
-            g_pikachu_scale = PIKACHU_MIN_SCALE;
-            g_pikachu_growing = true; // Start growing
-        }
+    // win & end game
+    if (player_one_score == 5 || player_two_score == 5) {
+        g_ball_movement = glm::vec3(0.0f, 0.0f, 0.0f);
     }
     
-    /* Reset Model Matrices */
-    g_turtle_matrix = glm::mat4(1.0f);
-    g_pikachu_matrix = glm::mat4(1.0f);
+    g_ball_position += g_ball_movement * BALL_SPEED * delta_time;
+    g_ball_matrix = glm::translate(g_ball_matrix, g_ball_position);
     
-    /* Transformations for Turtle */
-    g_turtle_matrix = glm::translate(g_turtle_matrix, INIT_POS_TURTLE);
-    g_turtle_matrix = glm::rotate(g_turtle_matrix, g_rotation_turtle.y, glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate Turtle
-    g_turtle_matrix = glm::scale(g_turtle_matrix, INIT_SCALE); // Scale Turtle
+    g_rot_angle += ROT_SPEED * delta_time;
+    g_ball_matrix = glm::rotate(g_ball_matrix, glm::radians(g_rot_angle), glm::vec3(0.0f, 0.0f, 1.0f));
     
-    /* Transformations for Pikachu */
-    g_pikachu_matrix = glm::translate(g_pikachu_matrix, INIT_POS_TURTLE); // Set Turtle as origin
-    g_pikachu_matrix = glm::translate(g_pikachu_matrix, glm::vec3(pikachu_x, pikachu_y, 0.0f)); // Orbit around Turtle
-    g_pikachu_matrix = glm::rotate(g_pikachu_matrix, g_rotation_pikachu.y, glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate Pikachu on its own axis
-    g_pikachu_matrix = glm::scale(g_pikachu_matrix, glm::vec3(g_pikachu_scale, g_pikachu_scale, 1.0f));
+    g_player_one_matrix = glm::scale(g_player_one_matrix, INIT_SCALE_PLAYER);
+    g_player_two_matrix = glm::scale(g_player_two_matrix, INIT_SCALE_PLAYER);
+    g_ball_matrix  = glm::scale(g_ball_matrix, INIT_SCALE_BALL);
 }
 
-    
-
-
-void draw_object(glm::mat4 &object_g_model_matrix, GLuint &object_texture_id)
+void draw_object(glm::mat4 &object_model_matrix, GLuint &object_texture_id)
 {
-    g_shader_program.set_model_matrix(object_g_model_matrix);
+    g_shader_program.set_model_matrix(object_model_matrix);
     glBindTexture(GL_TEXTURE_2D, object_texture_id);
-    glDrawArrays(GL_TRIANGLES, 0, 6); // we are now drawing 2 triangles, so use 6, not 3
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-
-void render()
-{
+void render() {
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Vertices
-    float vertices[] =
-    {
+    float vertices[] = {
         -0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f,  // triangle 1
         -0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f   // triangle 2
     };
 
     // Textures
-    float texture_coordinates[] =
-    {
+    float texture_coordinates[] = {
         0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,     // triangle 1
         0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f,     // triangle 2
     };
 
-    glVertexAttribPointer(g_shader_program.get_position_attribute(), 2, GL_FLOAT, false,
-                          0, vertices);
+    glVertexAttribPointer(g_shader_program.get_position_attribute(), 2, GL_FLOAT, false, 0, vertices);
     glEnableVertexAttribArray(g_shader_program.get_position_attribute());
 
-    glVertexAttribPointer(g_shader_program.get_tex_coordinate_attribute(), 2, GL_FLOAT,
-                          false, 0, texture_coordinates);
+    glVertexAttribPointer(g_shader_program.get_tex_coordinate_attribute(), 2, GL_FLOAT, false, 0, texture_coordinates);
     glEnableVertexAttribArray(g_shader_program.get_tex_coordinate_attribute());
 
-    // Bind texture
-    draw_object(g_turtle_matrix, g_turtle_texture_id);
-    draw_object(g_pikachu_matrix, g_pikachu_texture_id);
+    draw_object(g_ball_matrix, g_ball_texture_id);
+    draw_object(g_player_one_matrix, g_player_one_texture_id);
+    draw_object(g_player_two_matrix, g_player_two_texture_id);
 
-    // We disable two attribute arrays now
     glDisableVertexAttribArray(g_shader_program.get_position_attribute());
     glDisableVertexAttribArray(g_shader_program.get_tex_coordinate_attribute());
 
     SDL_GL_SwapWindow(g_display_window);
 }
 
-
 void shutdown() { SDL_Quit(); }
-
 
 int main(int argc, char* argv[])
 {
