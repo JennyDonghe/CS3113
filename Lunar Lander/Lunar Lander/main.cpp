@@ -34,6 +34,7 @@ struct GameState
     Entity* platforms;
     Entity* game_lost;
     Entity* game_won;
+    float fuel;
 };
 
 constexpr int WINDOW_WIDTH  = 640,
@@ -150,6 +151,7 @@ void initialise()
     glClearColor(BG_RED, BG_BLUE, BG_GREEN, BG_OPACITY);
         
     g_game_state.platforms = new Entity[PLATFORM_COUNT];
+    g_game_state.fuel = 100.0f;
     GLuint platform_texture_id = load_texture(PLATFORM_FILEPATH);
     
     GLuint target_texture_id = load_texture(TARGET_FILEPATH);
@@ -238,32 +240,32 @@ void process_input()
 
     if (!g_game_over) {
 
-        if (key_state[SDL_SCANCODE_LEFT])
+        glm::vec3 new_accel = glm::vec3(0.0f, g_gravity * 0.1f, 0.0f);
+
+        if (g_game_state.fuel > 0.0f)
         {
-            g_game_state.player->set_acceleration(glm::vec3(-1.5f, 0.0f, 0.0f));
-        }
-        else if (key_state[SDL_SCANCODE_RIGHT])
-        {
-            g_game_state.player->set_acceleration(glm::vec3(1.5f, 0.0f, 0.0f));
-        }
-        else
-        {
-            g_game_state.player->set_acceleration(glm::vec3(0.0f, g_gravity * 0.1, 0.0f));
-        }
-        
-        if (key_state[SDL_SCANCODE_UP])
-        {
-            g_game_state.player->set_acceleration(glm::vec3(0.0f, 1.5f + g_gravity * 0.1, 0.0f));
-        }
-        else if (key_state[SDL_SCANCODE_DOWN])
-        {
-            g_game_state.player->set_acceleration(glm::vec3(0.0f, -1.5f - g_gravity * 0.1, 0.0f));
+            if (key_state[SDL_SCANCODE_LEFT]) {
+                new_accel.x = -1.0f;
+                g_game_state.fuel -= 0.1f;
+            }
+            else if (key_state[SDL_SCANCODE_RIGHT]) {
+                new_accel.x = 1.0f;
+                g_game_state.fuel -= 0.1f;
+            }
+
+            if (key_state[SDL_SCANCODE_UP]) {
+                new_accel.y = 1.0f + g_gravity * 0.1f;
+                g_game_state.fuel -= 0.1f;
+            }
+            else if (key_state[SDL_SCANCODE_DOWN]) {
+                new_accel.y = -1.0f - g_gravity * 0.1f;
+                g_game_state.fuel -= 0.1f;
+            }
+
+            if (g_game_state.fuel < 0.0f) g_game_state.fuel = 0.0f;
         }
 
-        if (glm::length(g_game_state.player->get_movement()) > 1.5f)
-        {
-            g_game_state.player->set_movement(glm::normalize(g_game_state.player->get_movement()));
-        }
+        g_game_state.player->set_acceleration(new_accel);
     }
 }
 
