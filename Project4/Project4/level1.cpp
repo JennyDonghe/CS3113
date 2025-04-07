@@ -4,8 +4,7 @@
 
 #define LEVEL1_WIDTH 14
 #define LEVEL1_HEIGHT 8
-constexpr int PLAY_ONCE   = 0;
-constexpr int NEXT_CHNL   = -1;
+
 
 unsigned int level1_data[] = {
     1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -45,7 +44,7 @@ void Level1::initialise() {
     m_game_state.player->set_acceleration(glm::vec3(0.0f, -9.81f, 0.0f));
     m_game_state.player->set_height(0.8f);
     m_game_state.player->set_width(0.8f);
-    m_game_state.player->set_jumping_power(5.5f);
+    m_game_state.player->set_jumping_power(6.5f);
 
    
     GLuint dog_texture_id = Utility::load_texture("assets/dog.png");

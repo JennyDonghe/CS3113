@@ -43,7 +43,7 @@ void Level2::initialise() {
     m_game_state.player->set_width(0.8f);
     m_game_state.player->set_jumping_power(7.0f);
 
-    // Enemy: Bird flying over gap
+   
     GLuint bird_texture_id = Utility::load_texture("assets/bird.png");
     m_game_state.enemies = new Entity[1];
     m_game_state.enemies[0].set_entity_type(ENEMY);

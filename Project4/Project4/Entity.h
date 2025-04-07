@@ -7,6 +7,7 @@
 
 enum EntityType { PLAYER, ENEMY };
 enum AIType { WALKER, GUARD, FLYER };
+
 enum AIState { IDLE, WALKING };
 
 class Entity {
@@ -86,11 +87,12 @@ public:
     void set_animation_rows(int rows) { m_animation_rows = rows; }
 
     void set_entity_type(EntityType type) { m_entity_type = type; }
+    
     void set_ai_type(AIType type) { m_ai_type = type; }
     void set_ai_state(AIState state) { m_ai_state = state; }
-
+   
     void set_jumping_power(float power) { m_jumping_power = power; }
-
+    AIType get_ai_type() const { return m_ai_type; }
     bool get_collided_bottom() const { return m_collided_bottom; }
 
     void set_patrol_bounds(float min_x, float max_x);
@@ -100,7 +102,7 @@ public:
         int tile_y = (int)((m_position.y - (m_height / 2)) / tile_size);
         return glm::ivec2(tile_x, tile_y);
     }
-
+    void ai_guard(Entity *player);
   
     void request_jump();
     bool get_jump_requested() const;

@@ -95,7 +95,18 @@ void Entity::check_collision_x(Map* map) {
 void Entity::ai_activate(Entity* player) {
     switch (m_ai_type) {
         case WALKER:
+            if (m_ai_state == WALKING) {
+                if (m_position.x < m_min_x) {
+                    m_movement.x = 1.0f;
+                } else if (m_position.x > m_max_x) {
+                    m_movement.x = -1.0f;
+                }
+            }
+            
+            break;
         case GUARD:
+            ai_guard(player);
+            break;
         case FLYER:
             if (m_ai_state == WALKING) {
                 if (m_position.x < m_min_x) {
@@ -136,7 +147,6 @@ void Entity::update(float delta_time, Entity* player, Entity* enemies, int enemy
     if (m_jump_requested && m_collided_bottom) {
         m_is_jumping = true;
     }
-    
 
     if (m_is_jumping) {
         m_is_jumping = false;
@@ -191,6 +201,30 @@ void Entity::render(ShaderProgram* program) {
 void Entity::set_patrol_bounds(float min_x, float max_x) {
     m_min_x = min_x;
     m_max_x = max_x;
+}
+
+void Entity::ai_guard(Entity *player)
+{
+    switch (m_ai_state) {
+        case IDLE:
+            if (glm::distance(m_position, player->get_position()) < 3.0f) m_ai_state = WALKING;
+            break;
+            
+        case WALKING:
+            // Depending on where the player is in respect to their x-position
+            // Change direction of the enemy
+            if (m_position.x > player->get_position().x) {
+                m_movement = glm::vec3(-1.0f, 0.0f, 0.0f);
+            } else {
+                m_movement = glm::vec3(1.0f, 0.0f, 0.0f);
+            }
+            break;
+            
+       
+            
+        default:
+            break;
+    }
 }
 
 void Entity::request_jump() { m_jump_requested = true; }

@@ -98,7 +98,7 @@ void initialise() {
     
 
     g_jump_sfx = Mix_LoadWAV("assets/jump.wav");
-    Mix_VolumeChunk(g_jump_sfx, MIX_MAX_VOLUME);
+    
     Mix_PlayChannel(
            NEXT_CHNL,       // using the first channel that is not currently in use...
            g_jump_sfx,  // ...play this chunk of audio...
